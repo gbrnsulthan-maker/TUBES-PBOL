@@ -1,6 +1,8 @@
 package com.sportfield.ui;
 
 import com.sportfield.ui.admin.AdminDashboard;
+import com.sportfield.ui.admin.AddFieldPanel;
+import java.util.ArrayList;
 import com.sportfield.ui.admin.ManageFieldPanel;
 import com.sportfield.ui.admin.ManageSchedulePanel;
 import com.sportfield.ui.admin.ReportPanel;
@@ -44,6 +46,9 @@ public class MainFrame extends JFrame {
     private ManageFieldPanel manageFieldPanel;
     private ManageSchedulePanel manageSchedulePanel;
     private ReportPanel reportPanel;
+    private AddFieldPanel addFieldPanel;
+
+private ArrayList<String[]> adminFieldData = new ArrayList<>();
 
     // Root layout
     private CardLayout rootLayout;
@@ -163,11 +168,48 @@ public class MainFrame extends JFrame {
         reservationFormPanel = new ReservationFormPanel();
         paymentPanel = new PaymentPanel();
 
-        // ── Admin panels ──
+        // ── Admin panels ── 
         adminDashboard = new AdminDashboard();
-        manageFieldPanel = new ManageFieldPanel();
+        manageFieldPanel = new ManageFieldPanel();      
         manageSchedulePanel = new ManageSchedulePanel();
         reportPanel = new ReportPanel();
+        addFieldPanel = new AddFieldPanel();
+
+        addFieldPanel.setOnSave(row -> {
+         if (row[ManageFieldPanel.F_ID] == null
+            || row[ManageFieldPanel.F_ID].isEmpty()) {
+
+        row[ManageFieldPanel.F_ID] = generateFieldId();
+        adminFieldData.add(row);
+
+         } else {
+          for (int i = 0; i < adminFieldData.size(); i++) {
+                if (adminFieldData.get(i)[ManageFieldPanel.F_ID]
+                    .equals(row[ManageFieldPanel.F_ID])) {
+
+                adminFieldData.set(i, row);
+                break;
+                }
+               }
+          }
+
+         refreshAdminFields();
+         contentCardLayout.show(contentPanel, "A_FIELDS");
+        });
+
+        addFieldPanel.setOnCancel(() ->
+        contentCardLayout.show(contentPanel, "A_FIELDS")
+        );
+
+        addFieldPanel.setNameTakenCheck((nama, currentId) -> {
+           for (String[] field : adminFieldData) {
+           if (!field[ManageFieldPanel.F_ID].equals(currentId)
+                && field[ManageFieldPanel.F_NAMA].equalsIgnoreCase(nama)) {
+            return true;
+            }
+        }
+         return false;
+        });
 
         // Add customer panels
         contentPanel.add(customerDashboard, "C_DASHBOARD");
@@ -180,6 +222,7 @@ public class MainFrame extends JFrame {
         // Add admin panels
         contentPanel.add(adminDashboard, "A_DASHBOARD");
         contentPanel.add(manageFieldPanel, "A_FIELDS");
+        contentPanel.add(addFieldPanel, "A_ADD_FIELD");
         contentPanel.add(manageSchedulePanel, "A_SCHEDULE");
         contentPanel.add(reportPanel, "A_REPORT");
 
@@ -286,12 +329,60 @@ public class MainFrame extends JFrame {
         adminDashboard.setStats(4, 2, 1, 580000);
 
         // Admin field management
-        manageFieldPanel.setFields(new String[][]{
-            {"f-001", "Lapangan Badminton A", "BADMINTON", "75.000", "08:00", "22:00", "Aktif"},
-            {"f-002", "Lapangan Futsal B", "FUTSAL", "120.000", "08:00", "22:00", "Aktif"},
-            {"f-003", "Lapangan Basketball C", "BASKETBALL", "100.000", "08:00", "22:00", "Aktif"},
-            {"f-004", "Lapangan Tennis D", "TENNIS", "90.000", "08:00", "22:00", "Aktif"},
+        adminFieldData.clear();
+
+        adminFieldData.add(new String[]{
+            "f-001", "Lapangan Badminton A", "BADMINTON",
+            "75.000", "08:00", "22:00", "Tersedia", ""
         });
+
+        adminFieldData.add(new String[]{
+            "f-002", "Lapangan Futsal B", "FUTSAL",
+            "120.000", "08:00", "22:00", "Tersedia", ""
+        });
+
+        adminFieldData.add(new String[]{
+            "f-003", "Lapangan Basketball C", "BASKETBALL",
+            "100.000", "08:00", "22:00", "Tersedia", ""
+        });
+
+        adminFieldData.add(new String[]{
+            "f-004", "Lapangan Tennis D", "TENNIS",
+            "90.000", "08:00", "22:00", "Tersedia", ""
+        });
+
+        refreshAdminFields();
+
+        manageFieldPanel.setOnAddField(() -> {
+           addFieldPanel.prepareNew();
+           contentCardLayout.show(contentPanel, "A_ADD_FIELD");
+        });
+        manageFieldPanel.setOnEditField(id -> {
+            for (String[] row : adminFieldData) {
+            if (row[ManageFieldPanel.F_ID].equals(id)) {
+            addFieldPanel.prepareEdit(row);
+            contentCardLayout.show(contentPanel, "A_ADD_FIELD");
+            break;
+            }
+          }
+        });
+
+        manageFieldPanel.setOnDeleteField(id -> {
+    int confirm = JOptionPane.showConfirmDialog(
+        this,
+        "Yakin ingin menghapus lapangan ini?",
+        "Konfirmasi Hapus",
+        JOptionPane.YES_NO_OPTION
+    );
+
+    if (confirm == JOptionPane.YES_OPTION) {
+        adminFieldData.removeIf(row ->
+            row[ManageFieldPanel.F_ID].equals(id)
+        );
+
+        refreshAdminFields();
+    }
+});
 
         manageFieldPanel.setOnAddField(() -> manageFieldPanel.showFieldDialog("Tambah Lapangan", null));
 
@@ -372,4 +463,29 @@ public class MainFrame extends JFrame {
             showAuth();
         }
     }
+
+    private void refreshAdminFields() {
+    manageFieldPanel.setFields(
+        adminFieldData.toArray(new String[0][])
+    );
+}
+
+private String generateFieldId() {
+    int number = 1;
+
+    while (true) {
+        String id = String.format("f-%03d", number);
+        boolean exists = false;
+
+        for (String[] row : adminFieldData) {
+            if (row[ManageFieldPanel.F_ID].equals(id)) {
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) return id;
+        number++;
+    }
+}
 }
