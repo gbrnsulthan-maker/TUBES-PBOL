@@ -1,3 +1,4 @@
+
 package com.sportfield.ui.customer;
 
 import com.sportfield.ui.Theme;
@@ -9,10 +10,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-/**
- * Panel konfirmasi reservasi dan pembayaran.
- * Menampilkan detail reservasi, pilihan metode bayar, dan tombol konfirmasi.
- */
 public class ReservationFormPanel extends JPanel {
 
     private JLabel fieldNameLabel;
@@ -30,13 +27,20 @@ public class ReservationFormPanel extends JPanel {
     private RoundedTextField bankNameField;
     private RoundedTextField accountField;
 
+    private RoundedButton confirmBtn;
+
     private Runnable onConfirm;
     private Runnable onBack;
 
     public ReservationFormPanel() {
         setBackground(Theme.BG_MAIN);
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(Theme.PADDING, Theme.PADDING, Theme.PADDING, Theme.PADDING));
+        setBorder(new EmptyBorder(
+                Theme.PADDING,
+                Theme.PADDING,
+                Theme.PADDING,
+                Theme.PADDING
+        ));
         buildUI();
     }
 
@@ -45,46 +49,58 @@ public class ReservationFormPanel extends JPanel {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
-        // ── Title ──
         JLabel title = new JLabel("Konfirmasi Reservasi");
         title.setFont(Theme.FONT_TITLE);
         title.setForeground(Theme.TEXT_PRIMARY);
         title.setAlignmentX(LEFT_ALIGNMENT);
         content.add(title);
 
-        JLabel subtitle = new JLabel("Periksa detail dan pilih metode pembayaran");
+        JLabel subtitle = new JLabel(
+                "Periksa detail dan pilih metode pembayaran"
+        );
         subtitle.setFont(Theme.FONT_BODY);
         subtitle.setForeground(Theme.TEXT_SECONDARY);
         subtitle.setAlignmentX(LEFT_ALIGNMENT);
         content.add(subtitle);
         content.add(Box.createVerticalStrut(20));
 
-        // ── Two columns ──
         JPanel columns = new JPanel(new GridLayout(1, 2, 20, 0));
         columns.setOpaque(false);
         columns.setAlignmentX(LEFT_ALIGNMENT);
         columns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 500));
 
-        // Left: Reservation details
         columns.add(buildDetailsCard());
-        // Right: Payment method
         columns.add(buildPaymentCard());
 
         content.add(columns);
         content.add(Box.createVerticalStrut(24));
 
-        // ── Buttons ──
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel btnPanel = new JPanel(
+                new FlowLayout(FlowLayout.RIGHT, 12, 0)
+        );
         btnPanel.setOpaque(false);
         btnPanel.setAlignmentX(LEFT_ALIGNMENT);
         btnPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        RoundedButton backBtn = new RoundedButton("← Kembali", RoundedButton.Style.SECONDARY);
-        backBtn.addActionListener(e -> { if (onBack != null) onBack.run(); });
+        RoundedButton backBtn = new RoundedButton(
+                "← Kembali",
+                RoundedButton.Style.SECONDARY
+        );
 
-        RoundedButton confirmBtn = new RoundedButton("Bayar Sekarang", RoundedButton.Style.PRIMARY);
+        backBtn.addActionListener(e -> {
+            if (onBack != null) onBack.run();
+        });
+
+        confirmBtn = new RoundedButton(
+                "Buat Reservasi",
+                RoundedButton.Style.PRIMARY
+        );
+
         confirmBtn.setPreferredSize(new Dimension(200, 44));
-        confirmBtn.addActionListener(e -> { if (onConfirm != null) onConfirm.run(); });
+
+        confirmBtn.addActionListener(e -> {
+            if (onConfirm != null) onConfirm.run();
+        });
 
         btnPanel.add(backBtn);
         btnPanel.add(confirmBtn);
@@ -93,7 +109,10 @@ public class ReservationFormPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(content);
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(Theme.BG_MAIN);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        );
+
         add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -115,8 +134,8 @@ public class ReservationFormPanel extends JPanel {
         timeLabel = addInfoRow(card, "Jam", "-");
         durationLabel = addInfoRow(card, "Durasi", "-");
 
-        // Separator
         card.add(Box.createVerticalStrut(12));
+
         JSeparator sep = new JSeparator();
         sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
         sep.setForeground(Theme.BORDER);
@@ -127,13 +146,13 @@ public class ReservationFormPanel extends JPanel {
         discountLabel = addInfoRow(card, "Diskon", "- Rp 0");
 
         card.add(Box.createVerticalStrut(8));
+
         JSeparator sep2 = new JSeparator();
         sep2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
         sep2.setForeground(Theme.BORDER);
         card.add(sep2);
         card.add(Box.createVerticalStrut(12));
 
-        // Total
         JPanel totalRow = new JPanel(new BorderLayout());
         totalRow.setOpaque(false);
         totalRow.setAlignmentX(LEFT_ALIGNMENT);
@@ -154,7 +173,11 @@ public class ReservationFormPanel extends JPanel {
         return card;
     }
 
-    private JLabel addInfoRow(JPanel parent, String label, String value) {
+    private JLabel addInfoRow(
+            JPanel parent,
+            String label,
+            String value
+    ) {
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
         row.setAlignmentX(LEFT_ALIGNMENT);
@@ -172,6 +195,7 @@ public class ReservationFormPanel extends JPanel {
         row.add(val, BorderLayout.EAST);
         parent.add(row);
         parent.add(Box.createVerticalStrut(6));
+
         return val;
     }
 
@@ -187,7 +211,6 @@ public class ReservationFormPanel extends JPanel {
         card.add(header);
         card.add(Box.createVerticalStrut(16));
 
-        // Radio buttons
         ButtonGroup group = new ButtonGroup();
 
         cashRadio = new JRadioButton("  💵  Tunai");
@@ -208,7 +231,6 @@ public class ReservationFormPanel extends JPanel {
         group.add(cashRadio);
         group.add(transferRadio);
 
-        // Wrap radios in styled panels
         JPanel cashPanel = createRadioPanel(cashRadio);
         JPanel transferPanel = createRadioPanel(transferRadio);
 
@@ -217,9 +239,10 @@ public class ReservationFormPanel extends JPanel {
         card.add(transferPanel);
         card.add(Box.createVerticalStrut(12));
 
-        // Transfer fields (hidden by default)
         transferFields = new JPanel();
-        transferFields.setLayout(new BoxLayout(transferFields, BoxLayout.Y_AXIS));
+        transferFields.setLayout(
+                new BoxLayout(transferFields, BoxLayout.Y_AXIS)
+        );
         transferFields.setOpaque(false);
         transferFields.setAlignmentX(LEFT_ALIGNMENT);
         transferFields.setVisible(false);
@@ -231,8 +254,12 @@ public class ReservationFormPanel extends JPanel {
         transferFields.add(bankLabel);
         transferFields.add(Box.createVerticalStrut(4));
 
-        bankNameField = new RoundedTextField("Contoh: BCA, Mandiri, BNI");
-        bankNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        bankNameField = new RoundedTextField(
+                "Contoh: BCA, Mandiri, BNI"
+        );
+        bankNameField.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 44)
+        );
         bankNameField.setAlignmentX(LEFT_ALIGNMENT);
         transferFields.add(bankNameField);
         transferFields.add(Box.createVerticalStrut(10));
@@ -244,16 +271,30 @@ public class ReservationFormPanel extends JPanel {
         transferFields.add(accLabel);
         transferFields.add(Box.createVerticalStrut(4));
 
-        accountField = new RoundedTextField("Masukkan nomor rekening");
-        accountField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        accountField = new RoundedTextField(
+                "Masukkan nomor rekening"
+        );
+        accountField.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 44)
+        );
         accountField.setAlignmentX(LEFT_ALIGNMENT);
         transferFields.add(accountField);
 
         card.add(transferFields);
 
-        // Toggle transfer fields
-        cashRadio.addActionListener(e -> transferFields.setVisible(false));
-        transferRadio.addActionListener(e -> transferFields.setVisible(true));
+        cashRadio.addActionListener(e -> {
+            transferFields.setVisible(false);
+            confirmBtn.setText("Buat Reservasi");
+            revalidate();
+            repaint();
+        });
+
+        transferRadio.addActionListener(e -> {
+            transferFields.setVisible(true);
+            confirmBtn.setText("Bayar Sekarang");
+            revalidate();
+            repaint();
+        });
 
         return card;
     }
@@ -261,51 +302,81 @@ public class ReservationFormPanel extends JPanel {
     private JPanel createRadioPanel(JRadioButton radio) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Theme.BG_MAIN);
+
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Theme.BORDER, 1, true),
-            new EmptyBorder(12, 12, 12, 12)
+                BorderFactory.createLineBorder(
+                        Theme.BORDER, 1, true
+                ),
+                new EmptyBorder(12, 12, 12, 12)
         ));
+
         panel.setAlignmentX(LEFT_ALIGNMENT);
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         panel.add(radio, BorderLayout.CENTER);
 
         radio.addActionListener(e -> {
-            // Reset all borders, then highlight selected
             Container parent = panel.getParent();
+
             if (parent != null) {
                 for (Component c : parent.getComponents()) {
                     if (c instanceof JPanel) {
-                        ((JPanel) c).setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(Theme.BORDER, 1, true),
-                            new EmptyBorder(12, 12, 12, 12)
-                        ));
+                        ((JPanel) c).setBorder(
+                                BorderFactory.createCompoundBorder(
+                                        BorderFactory.createLineBorder(
+                                                Theme.BORDER, 1, true
+                                        ),
+                                        new EmptyBorder(12, 12, 12, 12)
+                                )
+                        );
+
                         ((JPanel) c).setBackground(Theme.BG_MAIN);
                     }
                 }
             }
-            panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Theme.PRIMARY, 2, true),
-                new EmptyBorder(11, 11, 11, 11)
-            ));
+
+            panel.setBorder(
+                    BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(
+                                    Theme.PRIMARY, 2, true
+                            ),
+                            new EmptyBorder(11, 11, 11, 11)
+                    )
+            );
+
             panel.setBackground(Theme.PRIMARY_LIGHT);
         });
 
         return panel;
     }
 
-    // ── Public API ──
-
-    public void setReservationDetails(String fieldName, String type, String date,
-            String time, int duration, double pricePerHour, double discount, double total) {
+    public void setReservationDetails(
+            String fieldName,
+            String type,
+            String date,
+            String time,
+            int duration,
+            double pricePerHour,
+            double discount,
+            double total
+    ) {
         fieldNameLabel.setText(fieldName);
         fieldTypeLabel.setText(type);
         dateLabel.setText(date);
         timeLabel.setText(time);
         durationLabel.setText(duration + " jam");
-        subtotalLabel.setText(String.format("Rp %,.0f", pricePerHour * duration));
-        discountLabel.setText(String.format("- Rp %,.0f", discount));
-        totalLabel.setText(String.format("Rp %,.0f", total));
+
+        subtotalLabel.setText(
+                String.format("Rp %,.0f", pricePerHour * duration)
+        );
+
+        discountLabel.setText(
+                String.format("- Rp %,.0f", discount)
+        );
+
+        totalLabel.setText(
+                String.format("Rp %,.0f", total)
+        );
     }
 
     public String getSelectedPaymentMethod() {
@@ -320,6 +391,11 @@ public class ReservationFormPanel extends JPanel {
         return accountField.getText().trim();
     }
 
-    public void setOnConfirm(Runnable onConfirm) { this.onConfirm = onConfirm; }
-    public void setOnBack(Runnable onBack) { this.onBack = onBack; }
+    public void setOnConfirm(Runnable onConfirm) {
+        this.onConfirm = onConfirm;
+    }
+
+    public void setOnBack(Runnable onBack) {
+        this.onBack = onBack;
+    }
 }

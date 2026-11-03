@@ -271,6 +271,16 @@ public class SlotSelectionPanel extends JPanel {
         return null;
     }
 
+    /** Memilih lapangan berdasarkan ID dari halaman daftar lapangan. */
+    public void setSelectedFieldId(String fieldId) {
+        for (int i = 0; i < fieldIds.length; i++) {
+            if (fieldIds[i].equals(fieldId)) {
+                fieldCombo.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     /**
      * Mendapatkan tanggal yang dipilih dari dropdown.
      */

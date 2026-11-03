@@ -1,3 +1,4 @@
+
 package com.sportfield.ui.customer;
 
 import com.sportfield.ui.Theme;
@@ -9,6 +10,10 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Panel untuk menampilkan riwayat reservasi pengguna.
@@ -79,7 +84,6 @@ public class HistoryPanel extends JPanel {
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, Theme.PADDING_SM, 0));
         filterRow.setOpaque(false);
 
-        // Sort combo
         JLabel sortLabel = new JLabel("Urutkan:");
         sortLabel.setFont(Theme.FONT_BODY);
         sortLabel.setForeground(Theme.TEXT_SECONDARY);
@@ -94,7 +98,6 @@ public class HistoryPanel extends JPanel {
 
         filterRow.add(Box.createHorizontalStrut(Theme.PADDING_SM));
 
-        // Filter combo
         JLabel filterLabel = new JLabel("Status:");
         filterLabel.setFont(Theme.FONT_BODY);
         filterLabel.setForeground(Theme.TEXT_SECONDARY);
@@ -108,6 +111,9 @@ public class HistoryPanel extends JPanel {
         filterCombo.addItem("Dibatalkan");
         filterCombo.setPreferredSize(new Dimension(200, 36));
         filterRow.add(filterCombo);
+
+        sortCombo.addActionListener(e -> rebuildList());
+        filterCombo.addActionListener(e -> rebuildList());
 
         filterCard.add(filterRow, BorderLayout.CENTER);
         content.add(filterCard);
@@ -124,7 +130,7 @@ public class HistoryPanel extends JPanel {
         emptyInner.setOpaque(false);
         emptyInner.setBorder(new EmptyBorder(40, 0, 40, 0));
 
-        JLabel iconLabel = new JLabel("\uD83D\uDCCB"); // 📋 clipboard icon
+        JLabel iconLabel = new JLabel("\uD83D\uDCCB");
         iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 40));
         iconLabel.setAlignmentX(CENTER_ALIGNMENT);
 
@@ -159,27 +165,15 @@ public class HistoryPanel extends JPanel {
 
     // ── Public Interface ──
 
-    /**
-     * Menetapkan data reservasi dan membangun ulang daftar kartu.
-     * @param data array 2D: [id, fieldName, date, time, duration, totalPrice, status]
-     */
     public void setReservations(String[][] data) {
         this.reservations = data;
         rebuildList();
     }
 
-    /**
-     * Menetapkan callback saat tombol "Bayar" ditekan.
-     * @param onPay consumer yang menerima ID reservasi
-     */
     public void setOnPayAction(Consumer<String> onPay) {
         this.onPayAction = onPay;
     }
 
-    /**
-     * Menetapkan callback saat tombol "Batalkan" ditekan.
-     * @param onCancel consumer yang menerima ID reservasi
-     */
     public void setOnCancelAction(Consumer<String> onCancel) {
         this.onCancelAction = onCancel;
     }
@@ -196,10 +190,49 @@ public class HistoryPanel extends JPanel {
             return;
         }
 
-        emptyCard.setVisible(false);
+        List<String[]> visibleRows = new ArrayList<>();
+        String filter = String.valueOf(filterCombo.getSelectedItem());
 
         for (String[] row : reservations) {
+            if (row == null || row.length < 7) continue;
+
+            String status = row[6];
+
+            boolean matches = "Semua Status".equals(filter)
+                    || ("Menunggu Pembayaran".equals(filter) && STATUS_MENUNGGU.equalsIgnoreCase(status))
+                    || ("Dikonfirmasi".equals(filter) && STATUS_DIKONFIRMASI.equalsIgnoreCase(status))
+                    || ("Selesai".equals(filter) && STATUS_SELESAI.equalsIgnoreCase(status))
+                    || ("Dibatalkan".equals(filter) && STATUS_DIBATALKAN.equalsIgnoreCase(status));
+
+            if (matches) visibleRows.add(row);
+        }
+
+        String sort = String.valueOf(sortCombo.getSelectedItem());
+
+        if ("Terlama".equals(sort)) {
+            // Urutan asli merupakan urutan pembuatan.
+        } else if ("Status".equals(sort)) {
+            visibleRows.sort(Comparator.comparing(row -> row[6]));
+        } else {
+            java.util.Collections.reverse(visibleRows);
+        }
+
+        if (visibleRows.isEmpty()) {
+            emptyCard.setVisible(true);
+            emptyLabel.setText(reservations.length == 0
+                    ? "Belum ada riwayat reservasi."
+                    : "Tidak ada reservasi untuk status ini.");
+
+            listPanel.revalidate();
+            listPanel.repaint();
+            return;
+        }
+
+        emptyCard.setVisible(false);
+
+        for (String[] row : visibleRows) {
             if (row.length < 7) continue;
+
             String id = row[0];
             String fieldName = row[1];
             String date = row[2];
@@ -212,7 +245,7 @@ public class HistoryPanel extends JPanel {
             card.setLayout(new BorderLayout(Theme.PADDING, 0));
             card.setBorder(new EmptyBorder(Theme.PADDING, Theme.PADDING, Theme.PADDING, Theme.PADDING));
             card.setAlignmentX(LEFT_ALIGNMENT);
-            card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+            card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
             // ── Left: Status Badge ──
             JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -227,6 +260,11 @@ public class HistoryPanel extends JPanel {
             centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
             centerPanel.setOpaque(false);
 
+            JLabel idLabel = new JLabel("ID Reservasi: " + id);
+            idLabel.setFont(Theme.FONT_SMALL);
+            idLabel.setForeground(Theme.TEXT_SECONDARY);
+            idLabel.setAlignmentX(LEFT_ALIGNMENT);
+
             JLabel nameLabel = new JLabel(fieldName);
             nameLabel.setFont(Theme.FONT_HEADING);
             nameLabel.setForeground(Theme.TEXT_PRIMARY);
@@ -238,11 +276,17 @@ public class HistoryPanel extends JPanel {
             dateTimeLabel.setAlignmentX(LEFT_ALIGNMENT);
             dateTimeLabel.setBorder(new EmptyBorder(4, 0, 2, 0));
 
-            JLabel detailLabel = new JLabel("Durasi: " + duration + " jam  |  Total: Rp " + totalPrice);
+            String paymentStatus = row.length > 7 ? row[7] : "-";
+
+            JLabel detailLabel = new JLabel(
+                    "Durasi: " + duration + " jam  |  Total: Rp " + totalPrice
+                    + "  |  Pembayaran: " + paymentStatus
+            );
             detailLabel.setFont(Theme.FONT_SMALL);
             detailLabel.setForeground(Theme.TEXT_SECONDARY);
             detailLabel.setAlignmentX(LEFT_ALIGNMENT);
 
+            centerPanel.add(idLabel);
             centerPanel.add(nameLabel);
             centerPanel.add(dateTimeLabel);
             centerPanel.add(detailLabel);
@@ -252,12 +296,15 @@ public class HistoryPanel extends JPanel {
             rightPanel.setOpaque(false);
 
             if (STATUS_MENUNGGU.equalsIgnoreCase(status)) {
-                RoundedButton payBtn = new RoundedButton("Bayar", RoundedButton.Style.PRIMARY);
-                payBtn.setPreferredSize(new Dimension(100, 36));
-                payBtn.addActionListener(e -> {
+                RoundedButton changeMethodBtn = new RoundedButton(
+                        "Ubah Metode Pembayaran",
+                        RoundedButton.Style.PRIMARY
+                );
+                changeMethodBtn.setPreferredSize(new Dimension(190, 36));
+                changeMethodBtn.addActionListener(e -> {
                     if (onPayAction != null) onPayAction.accept(id);
                 });
-                rightPanel.add(payBtn);
+                rightPanel.add(changeMethodBtn);
 
                 RoundedButton cancelBtn = new RoundedButton("Batalkan", RoundedButton.Style.DANGER);
                 cancelBtn.setPreferredSize(new Dimension(110, 36));
@@ -265,6 +312,7 @@ public class HistoryPanel extends JPanel {
                     if (onCancelAction != null) onCancelAction.accept(id);
                 });
                 rightPanel.add(cancelBtn);
+
             } else if (STATUS_DIKONFIRMASI.equalsIgnoreCase(status)) {
                 RoundedButton cancelBtn = new RoundedButton("Batalkan", RoundedButton.Style.DANGER);
                 cancelBtn.setPreferredSize(new Dimension(110, 36));
@@ -299,22 +347,27 @@ public class HistoryPanel extends JPanel {
                 displayText = "Dikonfirmasi";
                 bgColor = Theme.SUCCESS;
                 break;
+
             case STATUS_MENUNGGU:
                 displayText = "Menunggu";
                 bgColor = Theme.WARNING;
                 break;
+
             case STATUS_DIBATALKAN:
                 displayText = "Dibatalkan";
                 bgColor = Theme.DANGER;
                 break;
+
             case STATUS_SELESAI:
                 displayText = "Selesai";
-                bgColor = new Color(156, 163, 175); // gray
+                bgColor = new Color(156, 163, 175);
                 break;
+
             case STATUS_KEDALUWARSA:
                 displayText = "Kedaluwarsa";
-                bgColor = new Color(156, 163, 175); // gray
+                bgColor = new Color(156, 163, 175);
                 break;
+
             default:
                 displayText = status;
                 bgColor = Theme.BORDER;
@@ -329,13 +382,19 @@ public class HistoryPanel extends JPanel {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                );
                 g2.setColor(finalBg);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
+                g2.fill(new RoundRectangle2D.Float(
+                        0, 0, getWidth(), getHeight(), 20, 20
+                ));
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
+
         badge.setFont(Theme.FONT_SMALL);
         badge.setForeground(finalFg);
         badge.setOpaque(false);
