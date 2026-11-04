@@ -246,32 +246,39 @@ public class LoginPanel extends JPanel {
         }
     }
 
-    private static class HeroPanel extends JPanel {
+    // Panel hijau di sisi kiri. Dipakai juga oleh RegisterPanel (satu package).
+    static class HeroPanel extends JPanel {
 
-        private HeroPanel() {
+        HeroPanel() {
+            this("BOOK YOUR GAME",
+                "<html>Temukan lapangan.<br>Mulai permainanmu.</html>",
+                "<html>Pesan lapangan favoritmu dengan mudah<br>dan nikmati setiap pertandingan.</html>");
+        }
+
+        HeroPanel(String eyebrowText, String headlineHtml, String detailHtml) {
             setLayout(new BorderLayout());
-            setBorder(new EmptyBorder(0, 0, 54, 46));
+            setBorder(new EmptyBorder(0, 48, 54, 46));
             setOpaque(false);
 
             JPanel copy = new JPanel();
             copy.setOpaque(false);
             copy.setLayout(new BoxLayout(copy, BoxLayout.Y_AXIS));
 
-            JLabel eyebrow = new JLabel("BOOK YOUR GAME");
+            JLabel eyebrow = new JLabel(eyebrowText);
             eyebrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
             eyebrow.setForeground(new Color(220, 255, 227));
             eyebrow.setAlignmentX(Component.LEFT_ALIGNMENT);
             copy.add(eyebrow);
             copy.add(Box.createVerticalStrut(12));
 
-            JLabel headline = new JLabel("<html>Temukan lapangan.<br>Mulai permainanmu.</html>");
+            JLabel headline = new JLabel(headlineHtml);
             headline.setFont(new Font("Segoe UI", Font.BOLD, 32));
             headline.setForeground(Color.WHITE);
             headline.setAlignmentX(Component.LEFT_ALIGNMENT);
             copy.add(headline);
             copy.add(Box.createVerticalStrut(12));
 
-            JLabel detail = new JLabel("<html>Pesan lapangan favoritmu dengan mudah<br>dan nikmati setiap pertandingan.</html>");
+            JLabel detail = new JLabel(detailHtml);
             detail.setFont(Theme.FONT_BODY);
             detail.setForeground(new Color(225, 242, 229));
             detail.setAlignmentX(Component.LEFT_ALIGNMENT);

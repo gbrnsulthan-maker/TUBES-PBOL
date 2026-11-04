@@ -135,22 +135,28 @@ public class MainFrame extends JFrame {
     private void handleRegister() {
         String nama = registerPanel.getNama();
         String email = registerPanel.getEmail();
+        String noHp = registerPanel.getNoHp();
         String password = registerPanel.getPassword();
         String confirm = registerPanel.getConfirmPassword();
 
-        if (nama.isEmpty() || email.isEmpty()
+        if (nama.isEmpty() || email.isEmpty() || noHp.isEmpty()
                 || password.isEmpty() || confirm.isEmpty()) {
             registerPanel.setError("Semua field wajib diisi.");
             return;
         }
 
-        if (nama.length() < 2) {
-            registerPanel.setError("Nama minimal 2 karakter.");
+        if (nama.length() < 2 || !nama.matches("[\\p{L} .'-]+")) {
+            registerPanel.setError("Nama harus diisi (minimal 2 karakter, hanya huruf).");
             return;
         }
 
-        if (!email.contains("@")) {
+        if (!email.matches("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$")) {
             registerPanel.setError("Format email tidak valid.");
+            return;
+        }
+
+        if (!noHp.matches("^(\\+62|62|0)8[0-9]{8,11}$")) {
+            registerPanel.setError("Nomor HP tidak valid (contoh: 081234567890).");
             return;
         }
 
@@ -832,7 +838,27 @@ public class MainFrame extends JFrame {
                     sidebar.setSelected(2);
                     contentCardLayout.show(contentPanel, "C_SLOTS");
                     break;
+
+                case 3:
+                    sidebar.setSelected(3);
+                    contentCardLayout.show(contentPanel, "C_HISTORY");
+                    break;
             }
+        });
+
+        // Rekomendasi lapangan di Home
+        customerDashboard.setRecommendedFields(new String[][]{
+            {"f-001", "Lapangan Badminton A", "BADMINTON", "75000", "08:00", "22:00", "Indoor, lantai vinyl", "true"},
+            {"f-002", "Lapangan Futsal B", "FUTSAL", "120000", "08:00", "22:00", "Ukuran 25x15m", "25x15m"},
+            {"f-003", "Lapangan Basketball C", "BASKETBALL", "100000", "08:00", "22:00", "Full court", "true"},
+            {"f-004", "Lapangan Tennis D", "TENNIS", "90000", "08:00", "22:00", "Hard court", "Hard court"},
+        });
+
+        customerDashboard.setOnBookField(id -> {
+            selectFieldForBooking(id);
+            sidebar.setSelected(2);
+            contentCardLayout.show(contentPanel, "C_SLOTS");
+            searchAvailableSlots();
         });
 
         // Replace dashboard panel
@@ -853,6 +879,7 @@ public class MainFrame extends JFrame {
         }, this::logout);
 
         contentCardLayout.show(contentPanel, "C_DASHBOARD");
+        customerDashboard.scrollToTop();
         rootLayout.show(rootPanel, "MAIN");
     }
 
@@ -905,7 +932,7 @@ public class MainFrame extends JFrame {
             boolean exists = false;
 
             for (String[] row : adminFieldData) {
-                if (ManageFieldPanel.F_ID.equals(id)) {
+                if (row[ManageFieldPanel.F_ID].equals(id)) {
                     exists = true;
                     break;
                 }
