@@ -2,19 +2,36 @@ package com.sportfield.ui.customer;
 
 import com.sportfield.ui.Theme;
 import com.sportfield.ui.components.CardPanel;
+import com.sportfield.ui.components.FieldVisuals;
 import com.sportfield.ui.components.RoundedButton;
 
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+/**
+ * Halaman Home customer.
+ * Isi: navbar, banner utama, ringkasan, rekomendasi lapangan,
+ * informasi aplikasi, reservasi terbaru, dan aksi cepat.
+ *
+ * Kode aksi untuk setOnAction:
+ *   0 = Lapangan, 1 = Cari Jadwal, 2 = Booking, 3 = Reservasi Saya
+ */
 public class CustomerDashboard extends JPanel {
+
+    private static final Locale ID = Locale.forLanguageTag("id-ID");
+    private static final int RECOMMENDED_COUNT = 4;
 
     private final JLabel lblAktif   = new JLabel("0");
     private final JLabel lblTotal   = new JLabel("0");
@@ -28,22 +45,31 @@ public class CustomerDashboard extends JPanel {
     private final RoundedButton btnCari;
     private final RoundedButton btnBuat;
 
+    private final JPanel recommendedGrid = new JPanel(new GridLayout(1, RECOMMENDED_COUNT, Theme.PADDING, 0));
+
+    private JScrollPane mainScroll;
     private IntConsumer onAction;
+    private Consumer<String> onBookField;
 
     public CustomerDashboard(String userName) {
         setLayout(new BorderLayout());
         setBackground(Theme.BG_MAIN);
         setOpaque(true);
 
-        JPanel content = new JPanel();
+        String displayName = userName == null || userName.trim().isEmpty() ? "Pelanggan" : userName.trim();
+
+        // ── Navbar (tetap di atas saat konten di-scroll) ──
+        add(createNavbar(displayName), BorderLayout.NORTH);
+
+        JPanel content = new ScrollableColumn();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
-        JPanel heroSection = createHeroSection(userName);
-        heroSection.setBorder(BorderFactory.createEmptyBorder(0, Theme.PADDING_LG, 0, Theme.PADDING_LG));
-        content.add(heroSection);
+        // ── Banner utama ──
+        content.add(createHeroSection(displayName));
         content.add(Box.createVerticalStrut(Theme.PADDING_LG));
 
+        // ── Ringkasan ──
         JPanel statsRow = new JPanel(new GridLayout(1, 3, Theme.PADDING, 0));
         statsRow.setOpaque(false);
         statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 124));
@@ -57,6 +83,23 @@ public class CustomerDashboard extends JPanel {
         content.add(statsRow);
         content.add(Box.createVerticalStrut(Theme.PADDING_LG));
 
+        // ── Rekomendasi lapangan ──
+        content.add(createSection(
+            "Rekomendasi Lapangan",
+            "Pilihan lapangan yang sedang ramai dipesan",
+            "Lihat semua  →", 0,
+            recommendedGrid, 292));
+        content.add(Box.createVerticalStrut(Theme.PADDING_LG));
+
+        // ── Informasi aplikasi ──
+        content.add(createSection(
+            "Kenapa SportField?",
+            "Aplikasi reservasi lapangan olahraga yang praktis untuk kamu dan timmu",
+            null, -1,
+            createInfoGrid(), 192));
+        content.add(Box.createVerticalStrut(Theme.PADDING_LG));
+
+        // ── Reservasi terbaru + aksi cepat ──
         JPanel bottomRow = new JPanel(new GridBagLayout());
         bottomRow.setOpaque(false);
         bottomRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -87,10 +130,15 @@ public class CustomerDashboard extends JPanel {
         };
         table = new JTable(tableModel);
         styleTable(table);
+        table.getColumnModel().getColumn(0).setPreferredWidth(150);
+        table.getColumnModel().getColumn(1).setPreferredWidth(110);
+        table.getColumnModel().getColumn(2).setPreferredWidth(110);
+        table.getColumnModel().getColumn(3).setPreferredWidth(210);
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createLineBorder(Theme.BORDER_GLASS, 1));
         scrollPane.getViewport().setBackground(Theme.BG_WHITE);
+        scrollPane.setPreferredSize(new Dimension(100, 232));
 
         JPanel tableWrapper = new JPanel(new CardLayout());
         tableWrapper.setOpaque(false);
@@ -166,35 +214,202 @@ public class CustomerDashboard extends JPanel {
 
         content.add(bottomRow);
 
-        JScrollPane mainScroll = new JScrollPane(content);
+        mainScroll = new JScrollPane(content);
         mainScroll.setBorder(null);
         mainScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         mainScroll.getVerticalScrollBar().setUnitIncrement(16);
         mainScroll.getViewport().setBackground(Theme.BG_MAIN);
 
         add(mainScroll, BorderLayout.CENTER);
+
+        recommendedGrid.setOpaque(false);
     }
 
-    private JPanel createHeroSection(String userName) {
+    /** Panel isi yang selalu mengikuti lebar jendela (tanpa scroll horizontal). */
+    private static class ScrollableColumn extends JPanel implements Scrollable {
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle r, int o, int d) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle r, int o, int d) { return 64; }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    }
+
+    //  NAVBAR
+
+    private JPanel createNavbar(String displayName) {
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setOpaque(true);
+        outer.setBackground(Theme.BG_MAIN);
+        outer.setBorder(BorderFactory.createEmptyBorder(Theme.PADDING_SM + 4, Theme.PADDING_LG, Theme.PADDING_SM, Theme.PADDING_LG));
+
+        CardPanel bar = new CardPanel(Theme.CARD_RADIUS, true);
+        bar.setGlassStyle(false);
+        bar.setBackground(Theme.BG_WHITE);
+        bar.setLayout(new BorderLayout(16, 0));
+        bar.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 14));
+        bar.setPreferredSize(new Dimension(0, 66));
+
+        // Kiri: brand
+        JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        brand.setOpaque(false);
+        JLabel logoIcon = new JLabel("⚽");
+        logoIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+        JLabel logoText = new JLabel("SportField");
+        logoText.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        logoText.setForeground(Theme.PRIMARY);
+        brand.add(logoIcon);
+        brand.add(logoText);
+        bar.add(centerVertically(brand, GridBagConstraints.WEST), BorderLayout.WEST);
+
+        // Tengah: menu
+        JPanel links = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        links.setOpaque(false);
+        links.add(new NavLink("Beranda", true, null));
+        links.add(new NavLink("Lapangan", false, () -> fireAction(0)));
+        links.add(new NavLink("Jadwal", false, () -> fireAction(1)));
+        links.add(new NavLink("Reservasi Saya", false, () -> fireAction(3)));
+        bar.add(centerVertically(links, GridBagConstraints.CENTER), BorderLayout.CENTER);
+
+        // Kanan: tombol booking + user
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        right.setOpaque(false);
+
+        RoundedButton bookNav = new RoundedButton("Booking", RoundedButton.Style.GRADIENT);
+        bookNav.setFont(Theme.FONT_SMALL.deriveFont(Font.BOLD, 13f));
+        bookNav.setPreferredSize(new Dimension(104, 38));
+        bookNav.addActionListener(e -> fireAction(2));
+
+        JLabel name = new JLabel(displayName);
+        name.setFont(Theme.FONT_BODY.deriveFont(Font.BOLD));
+        name.setForeground(Theme.TEXT_PRIMARY);
+
+        right.add(bookNav);
+        right.add(new AvatarBadge(displayName));
+        right.add(name);
+        bar.add(centerVertically(right, GridBagConstraints.EAST), BorderLayout.EAST);
+
+        // Jendela sempit: sembunyikan tombol & nama agar menu tidak terpotong
+        bar.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                boolean wide = bar.getWidth() >= 940;
+                if (bookNav.isVisible() != wide) {
+                    bookNav.setVisible(wide);
+                    name.setVisible(wide);
+                    bar.revalidate();
+                }
+            }
+        });
+
+        outer.add(bar, BorderLayout.CENTER);
+        return outer;
+    }
+
+    /** Membungkus komponen agar berada di tengah secara vertikal. */
+    private static JPanel centerVertically(JComponent inner, int anchor) {
+        JPanel box = new JPanel(new GridBagLayout());
+        box.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints();
+        c.anchor = anchor;
+        c.weightx = 1.0;
+        c.fill = GridBagConstraints.NONE;
+        box.add(inner, c);
+        return box;
+    }
+
+    /** Item menu di navbar (pill saat aktif / hover). */
+    private static class NavLink extends JLabel {
+        private final boolean active;
+        private boolean hover = false;
+
+        NavLink(String text, boolean active, Runnable onClick) {
+            super(text);
+            this.active = active;
+            setFont(Theme.FONT_BODY.deriveFont(active ? Font.BOLD : Font.PLAIN));
+            setForeground(active ? Theme.PRIMARY : Theme.TEXT_SECONDARY);
+            setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+            setOpaque(false);
+            if (onClick != null) {
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            }
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    hover = true;
+                    if (!NavLink.this.active) setForeground(Theme.TEXT_PRIMARY);
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    hover = false;
+                    if (!NavLink.this.active) setForeground(Theme.TEXT_SECONDARY);
+                    repaint();
+                }
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (onClick != null) onClick.run();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            if (active || hover) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(active ? Theme.PRIMARY_LIGHT : new Color(243, 244, 246));
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), Theme.BUTTON_RADIUS, Theme.BUTTON_RADIUS));
+                g2.dispose();
+            }
+            super.paintComponent(g);
+        }
+    }
+
+    /** Lingkaran berisi inisial nama user. */
+    private static class AvatarBadge extends JComponent {
+        private final String initial;
+
+        AvatarBadge(String name) {
+            this.initial = name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
+            setPreferredSize(new Dimension(38, 38));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setPaint(new GradientPaint(0, 0, Theme.GRADIENT_BLUE, getWidth(), getHeight(), Theme.GRADIENT_CYAN));
+            g2.fill(new Ellipse2D.Float(0, 0, getWidth(), getHeight()));
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(initial, (getWidth() - fm.stringWidth(initial)) / 2,
+                (getHeight() - fm.getHeight()) / 2 + fm.getAscent());
+            g2.dispose();
+        }
+    }
+
+    //  BANNER UTAMA
+
+    private JPanel createHeroSection(String displayName) {
         HeroPanel hero = new HeroPanel();
         hero.setLayout(new BorderLayout(24, 0));
-        hero.setBorder(BorderFactory.createEmptyBorder(30, 34, 30, 28));
-        hero.setPreferredSize(new Dimension(0, 270));
-        hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 270));
-        hero.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hero.setBorder(BorderFactory.createEmptyBorder(28, 34, 28, 28));
 
         JPanel message = new JPanel();
         message.setOpaque(false);
         message.setLayout(new BoxLayout(message, BoxLayout.Y_AXIS));
 
         JLabel date = new JLabel(LocalDate.now().format(
-            DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", new Locale("id", "ID"))
-        ).toUpperCase(new Locale("id", "ID")));
+            DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", ID)
+        ).toUpperCase(ID));
         date.setFont(new Font("Segoe UI", Font.BOLD, 11));
         date.setForeground(new Color(203, 242, 216));
         date.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        String displayName = userName == null || userName.trim().isEmpty() ? "Pelanggan" : userName.trim();
         JLabel greeting = new JLabel("<html>Halo, " + escapeHtml(displayName) + "!<br>Siap untuk bermain?</html>");
         greeting.setFont(new Font("Segoe UI", Font.BOLD, 30));
         greeting.setForeground(Color.WHITE);
@@ -205,13 +420,13 @@ public class CustomerDashboard extends JPanel {
         subtitle.setForeground(new Color(225, 242, 229));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        RoundedButton bookButton = new RoundedButton("Cari Lapangan  →", RoundedButton.Style.OUTLINE);
+        RoundedButton bookButton = new RoundedButton("Booking Sekarang  →", RoundedButton.Style.OUTLINE);
         bookButton.setBackground(Color.WHITE);
         bookButton.setForeground(new Color(24, 103, 70));
-        bookButton.setPreferredSize(new Dimension(170, 42));
-        bookButton.setMaximumSize(new Dimension(170, 42));
+        bookButton.setPreferredSize(new Dimension(190, 42));
+        bookButton.setMaximumSize(new Dimension(190, 42));
         bookButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bookButton.addActionListener(e -> fireAction(1));
+        bookButton.addActionListener(e -> fireAction(2));
 
         message.add(date);
         message.add(Box.createVerticalStrut(18));
@@ -222,7 +437,17 @@ public class CustomerDashboard extends JPanel {
         message.add(bookButton);
         hero.add(message, BorderLayout.WEST);
         hero.add(new HeroArtwork(), BorderLayout.CENTER);
-        return hero;
+
+        // Padding kiri-kanan dipasang di pembungkus (bukan di hero)
+        // supaya banner sejajar dengan navbar dan section lain.
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(0, Theme.PADDING_LG, 0, Theme.PADDING_LG));
+        wrapper.setPreferredSize(new Dimension(0, 290));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 290));
+        wrapper.add(hero, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private String escapeHtml(String text) {
@@ -306,6 +531,264 @@ public class CustomerDashboard extends JPanel {
         }
     }
 
+    //  SECTION: header + isi
+
+    /**
+     * Membungkus isi dengan judul section.
+     * linkText boleh null; jika ada, klik akan memanggil fireAction(linkAction).
+     */
+    private JPanel createSection(String title, String subtitle, String linkText, int linkAction,
+                                 JComponent body, int bodyHeight) {
+        JPanel section = new JPanel(new BorderLayout(0, Theme.PADDING_SM));
+        section.setOpaque(false);
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+        section.setBorder(BorderFactory.createEmptyBorder(0, Theme.PADDING_LG, 0, Theme.PADDING_LG));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+
+        JPanel titles = new JPanel();
+        titles.setOpaque(false);
+        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(Theme.FONT_SUBTITLE);
+        titleLabel.setForeground(Theme.TEXT_PRIMARY);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel subtitleLabel = new JLabel(subtitle);
+        subtitleLabel.setFont(Theme.FONT_SMALL);
+        subtitleLabel.setForeground(Theme.TEXT_SECONDARY);
+        subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        titles.add(titleLabel);
+        titles.add(Box.createVerticalStrut(2));
+        titles.add(subtitleLabel);
+        header.add(titles, BorderLayout.WEST);
+
+        if (linkText != null) {
+            JLabel link = new JLabel(linkText);
+            link.setFont(Theme.FONT_BODY.deriveFont(Font.BOLD));
+            link.setForeground(Theme.PRIMARY);
+            link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            link.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    fireAction(linkAction);
+                }
+            });
+            header.add(link, BorderLayout.EAST);
+        }
+
+        body.setPreferredSize(new Dimension(0, bodyHeight));
+        section.add(header, BorderLayout.NORTH);
+        section.add(body, BorderLayout.CENTER);
+
+        section.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48 + Theme.PADDING_SM + bodyHeight));
+        return section;
+    }
+
+    //  REKOMENDASI LAPANGAN
+
+    /**
+     * Mengisi rekomendasi lapangan (maksimal 4 pertama).
+     * Format tiap baris sama dengan FieldListPanel.setFields:
+     * [id, nama, jenis, tarif, jamBuka, jamTutup, deskripsi, extra]
+     */
+    public void setRecommendedFields(String[][] fields) {
+        recommendedGrid.removeAll();
+        int count = fields == null ? 0 : Math.min(fields.length, RECOMMENDED_COUNT);
+        for (int i = 0; i < RECOMMENDED_COUNT; i++) {
+            if (i < count) {
+                recommendedGrid.add(createFieldCard(fields[i]));
+            } else {
+                JPanel spacer = new JPanel();
+                spacer.setOpaque(false);
+                recommendedGrid.add(spacer);
+            }
+        }
+        recommendedGrid.revalidate();
+        recommendedGrid.repaint();
+    }
+
+    private JPanel createFieldCard(String[] f) {
+        String id     = f[0];
+        String name   = f[1];
+        String type   = f.length > 2 ? f[2] : "";
+        String tarif  = f.length > 3 ? f[3] : "0";
+        String buka   = f.length > 4 ? f[4] : "";
+        String tutup  = f.length > 5 ? f[5] : "";
+
+        Color sportColor = FieldVisuals.colorFor(type);
+
+        CardPanel card = new CardPanel();
+        card.setLayout(new BorderLayout());
+
+        JPanel banner = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(sportColor);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight() + 16, Theme.CARD_RADIUS, Theme.CARD_RADIUS));
+                g2.fillRect(0, getHeight() - 16, getWidth(), 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        banner.setOpaque(false);
+        banner.setPreferredSize(new Dimension(0, 84));
+        JLabel emoji = new JLabel(FieldVisuals.emojiFor(type));
+        emoji.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 36));
+        banner.add(emoji);
+        card.add(banner, BorderLayout.NORTH);
+
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(Theme.PADDING_SM, 18, 6, 18));
+
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setFont(Theme.FONT_HEADING);
+        nameLabel.setForeground(Theme.TEXT_PRIMARY);
+        nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(nameLabel);
+        body.add(Box.createVerticalStrut(6));
+
+        JLabel badge = new JLabel(FieldVisuals.capitalize(type)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(sportColor.getRed(), sportColor.getGreen(), sportColor.getBlue(), 30));
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 14, 14));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        badge.setFont(Theme.FONT_SMALL);
+        badge.setForeground(sportColor);
+        badge.setOpaque(false);
+        badge.setBorder(BorderFactory.createEmptyBorder(2, 10, 2, 10));
+        JPanel badgeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        badgeRow.setOpaque(false);
+        badgeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        badgeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        badgeRow.add(badge);
+        body.add(badgeRow);
+        body.add(Box.createVerticalStrut(10));
+
+        JLabel price = new JLabel("Rp " + formatRupiah(tarif) + "/jam");
+        price.setFont(Theme.FONT_HEADING);
+        price.setForeground(Theme.PRIMARY);
+        price.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(price);
+        body.add(Box.createVerticalStrut(4));
+
+        JLabel hours = new JLabel("🕐 " + buka + " - " + tutup);
+        hours.setFont(Theme.FONT_SMALL);
+        hours.setForeground(Theme.TEXT_SECONDARY);
+        hours.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(hours);
+
+        card.add(body, BorderLayout.CENTER);
+
+        RoundedButton bookBtn = new RoundedButton("Booking", RoundedButton.Style.GRADIENT);
+        bookBtn.setFont(Theme.FONT_SMALL.deriveFont(Font.BOLD, 13f));
+        bookBtn.setPreferredSize(new Dimension(0, 36));
+        bookBtn.addActionListener(e -> {
+            if (onBookField != null) {
+                onBookField.accept(id);
+            } else {
+                fireAction(2);
+            }
+        });
+        JPanel btnRow = new JPanel(new BorderLayout());
+        btnRow.setOpaque(false);
+        btnRow.setBorder(BorderFactory.createEmptyBorder(0, 18, 16, 18));
+        btnRow.add(bookBtn, BorderLayout.CENTER);
+        card.add(btnRow, BorderLayout.SOUTH);
+
+        return card;
+    }
+
+    /** "75000" atau "75.000" → "75.000". */
+    private static String formatRupiah(String raw) {
+        String digits = raw == null ? "" : raw.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return "0";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < digits.length(); i++) {
+            if (i > 0 && (digits.length() - i) % 3 == 0) sb.append('.');
+            sb.append(digits.charAt(i));
+        }
+        return sb.toString();
+    }
+
+    //  INFORMASI APLIKASI
+
+    private JPanel createInfoGrid() {
+        JPanel grid = new JPanel(new GridLayout(1, 4, Theme.PADDING, 0));
+        grid.setOpaque(false);
+        grid.add(createInfoCard("📱", "Booking Mudah",
+            "Pilih lapangan, tanggal, dan jam hanya dalam beberapa klik.", Theme.INFO));
+        grid.add(createInfoCard("🗓", "Jadwal Jelas",
+            "Slot yang sudah terisi langsung ditandai, tanpa bentrok.", Theme.SUCCESS));
+        grid.add(createInfoCard("💰", "Harga Transparan",
+            "Total biaya dihitung otomatis sesuai durasi bermain.", Theme.WARNING));
+        grid.add(createInfoCard("💳", "Bayar Fleksibel",
+            "Pilih metode pembayaran yang paling nyaman untukmu.", new Color(139, 92, 246)));
+        return grid;
+    }
+
+    private JPanel createInfoCard(String icon, String title, String description, Color accent) {
+        CardPanel card = new CardPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(BorderFactory.createEmptyBorder(Theme.PADDING - 4, Theme.PADDING - 4, Theme.PADDING - 4, Theme.PADDING - 4));
+
+        JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 32));
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 14, 14));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 22));
+        iconLabel.setOpaque(false);
+        iconLabel.setPreferredSize(new Dimension(46, 46));
+        iconLabel.setMaximumSize(new Dimension(46, 46));
+        iconLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(Theme.FONT_HEADING);
+        titleLabel.setForeground(Theme.TEXT_PRIMARY);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // JTextArea: teks otomatis turun baris mengikuti lebar kartu
+        JTextArea descLabel = new JTextArea(description);
+        descLabel.setLineWrap(true);
+        descLabel.setWrapStyleWord(true);
+        descLabel.setEditable(false);
+        descLabel.setFocusable(false);
+        descLabel.setOpaque(false);
+        descLabel.setBorder(null);
+        descLabel.setFont(Theme.FONT_SMALL);
+        descLabel.setForeground(Theme.TEXT_SECONDARY);
+        descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(iconLabel);
+        card.add(Box.createVerticalStrut(12));
+        card.add(titleLabel);
+        card.add(Box.createVerticalStrut(4));
+        card.add(descLabel);
+        return card;
+    }
+
+    //  DATA & CALLBACK
+
     public void setStats(int aktif, int total, int menunggu) {
         lblAktif.setText(String.valueOf(aktif));
         lblTotal.setText(String.valueOf(total));
@@ -321,7 +804,9 @@ public class CustomerDashboard extends JPanel {
             }
         } else {
             for (String[] row : data) {
-                tableModel.addRow(row);
+                String[] shown = row.clone();
+                if (shown.length > 3) shown[3] = prettyStatus(shown[3]);
+                tableModel.addRow(shown);
             }
             Container parent = table.getParent().getParent().getParent();
             if (parent.getLayout() instanceof CardLayout) {
@@ -330,8 +815,31 @@ public class CustomerDashboard extends JPanel {
         }
     }
 
+    /** Kembalikan tampilan ke paling atas (supaya banner utama terlihat). */
+    public void scrollToTop() {
+        SwingUtilities.invokeLater(() -> mainScroll.getVerticalScrollBar().setValue(0));
+    }
+
+    /** "MENUNGGU_PEMBAYARAN" → "Menunggu Pembayaran". */
+    private static String prettyStatus(String raw) {
+        if (raw == null || raw.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (String w : raw.toLowerCase(ID).split("_")) {
+            if (w.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        }
+        return sb.toString();
+    }
+
+    /** Aksi: 0 = Lapangan, 1 = Cari Jadwal, 2 = Booking, 3 = Reservasi Saya. */
     public void setOnAction(IntConsumer onAction) {
         this.onAction = onAction;
+    }
+
+    /** Dipanggil saat tombol Booking pada kartu rekomendasi ditekan (menerima ID lapangan). */
+    public void setOnBookField(Consumer<String> onBookField) {
+        this.onBookField = onBookField;
     }
 
     private CardPanel createStatCard(String icon, String title, JLabel valueLabel, Color accent) {

@@ -18,6 +18,29 @@ import java.util.function.Consumer;
  */
 public class ManageFieldPanel extends JPanel {
 
+    public static final int F_ID = 0;
+    public static final int F_NAMA = 1;
+    public static final int F_JENIS = 2;
+    public static final int F_TARIF = 3;
+    public static final int F_BUKA = 4;
+    public static final int F_TUTUP = 5;
+    public static final int F_STATUS = 6;
+    public static final int F_FOTO = 7;
+
+    public static final String STATUS_TERSEDIA = "Tersedia";
+    public static final String STATUS_TIDAK = "Tidak Tersedia";
+
+    public static String normalizeStatus(String status) {
+        if (status == null) return STATUS_TIDAK;
+
+        if (status.equalsIgnoreCase("Aktif")
+                || status.equalsIgnoreCase("Tersedia")) {
+            return STATUS_TERSEDIA;
+        }
+
+        return STATUS_TIDAK;
+    }
+
     private DefaultTableModel tableModel;
     private JTable table;
     private Runnable onAddField;

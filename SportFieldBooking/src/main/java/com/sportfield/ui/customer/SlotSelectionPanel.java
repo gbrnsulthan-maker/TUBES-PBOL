@@ -96,7 +96,7 @@ public class SlotSelectionPanel extends JPanel {
         filterCard.setLayout(new BorderLayout());
         filterCard.setBorder(new EmptyBorder(Theme.PADDING, Theme.PADDING, Theme.PADDING, Theme.PADDING));
         filterCard.setAlignmentX(LEFT_ALIGNMENT);
-        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, Theme.PADDING_SM, 0));
         filterRow.setOpaque(false);
@@ -269,6 +269,16 @@ public class SlotSelectionPanel extends JPanel {
             return fieldIds[idx];
         }
         return null;
+    }
+
+    /** Memilih lapangan berdasarkan ID dari halaman daftar lapangan. */
+    public void setSelectedFieldId(String fieldId) {
+        for (int i = 0; i < fieldIds.length; i++) {
+            if (fieldIds[i].equals(fieldId)) {
+                fieldCombo.setSelectedIndex(i);
+                return;
+            }
+        }
     }
 
     /**
