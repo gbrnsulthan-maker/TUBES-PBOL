@@ -41,6 +41,7 @@ public class MainFrame extends JFrame {
     // Customer panels
     private CustomerDashboard customerDashboard;
     private FieldListPanel fieldListPanel;
+    private FieldDetailPanel fieldDetailPanel;
     private SlotSelectionPanel slotSelectionPanel;
     private HistoryPanel historyPanel;
     private ReservationFormPanel reservationFormPanel;
@@ -197,6 +198,7 @@ public class MainFrame extends JFrame {
         // Customer panels
         customerDashboard = new CustomerDashboard("User");
         fieldListPanel = new FieldListPanel();
+        fieldDetailPanel = new FieldDetailPanel();
         slotSelectionPanel = new SlotSelectionPanel();
         historyPanel = new HistoryPanel();
         reservationFormPanel = new ReservationFormPanel();
@@ -249,6 +251,7 @@ public class MainFrame extends JFrame {
         // Add customer panels
         contentPanel.add(customerDashboard, "C_DASHBOARD");
         contentPanel.add(fieldListPanel, "C_FIELDS");
+        contentPanel.add(fieldDetailPanel, "C_FIELD_DETAIL");
         contentPanel.add(slotSelectionPanel, "C_SLOTS");
         contentPanel.add(historyPanel, "C_HISTORY");
         contentPanel.add(reservationFormPanel, "C_RESERVATION");
@@ -289,6 +292,7 @@ public class MainFrame extends JFrame {
             }
         });
 
+<<<<<<< HEAD
         reservationFormPanel.setOnBack(() ->
                 contentCardLayout.show(contentPanel, "C_SLOTS")
         );
@@ -296,6 +300,73 @@ public class MainFrame extends JFrame {
         reservationFormPanel.setOnConfirm(() ->
                 confirmCustomerReservation()
         );
+=======
+        fieldListPanel.setOnFieldSelected(fieldId -> {
+            String[] selectedField = fieldListPanel.getFieldById(fieldId);
+            if (selectedField == null) {
+                JOptionPane.showMessageDialog(this, "Detail lapangan tidak ditemukan.",
+                        "Informasi", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            fieldDetailPanel.setField(selectedField);
+            contentCardLayout.show(contentPanel, "C_FIELD_DETAIL");
+        });
+        fieldDetailPanel.setOnBack(() -> contentCardLayout.show(contentPanel, "C_FIELDS"));
+        fieldDetailPanel.setOnBook(() -> {
+            String[] selectedField = fieldDetailPanel.getField();
+            if (selectedField == null) return;
+            slotSelectionPanel.setPricePerHour(fieldDetailPanel.getHourlyPrice());
+            slotSelectionPanel.selectField(selectedField[0]);
+            sidebar.setSelected(2);
+            contentCardLayout.show(contentPanel, "C_SLOTS");
+        });
+
+        slotSelectionPanel.setOnSearch(() -> {
+            String fieldId = slotSelectionPanel.getSelectedFieldId();
+            String[] selectedField = fieldListPanel.getFieldById(fieldId);
+            if (selectedField == null) {
+                JOptionPane.showMessageDialog(this, "Silakan pilih lapangan terlebih dahulu.",
+                        "Informasi", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            String priceDigits = selectedField[3].replaceAll("[^0-9]", "");
+            if (priceDigits.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Harga lapangan tidak valid.",
+                        "Tidak dapat menampilkan jadwal", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                slotSelectionPanel.setPricePerHour(Double.parseDouble(priceDigits));
+            } catch (NumberFormatException exception) {
+                JOptionPane.showMessageDialog(this, "Harga lapangan tidak valid.",
+                        "Tidak dapat menampilkan jadwal", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            boolean[] availableSlots = new boolean[14];
+            java.util.Arrays.fill(availableSlots, true);
+            availableSlots[3] = false;
+            availableSlots[9] = false;
+            if (fieldId.endsWith("3")) availableSlots[5] = false;
+            slotSelectionPanel.setSlots(selectedField[1], slotSelectionPanel.getSelectedDate(), availableSlots);
+        });
+
+        reservationFormPanel.setOnBack(() -> contentCardLayout.show(contentPanel, "C_SLOTS"));
+        reservationFormPanel.setOnConfirm(() -> {
+            // Demo: show payment success
+            paymentPanel.setPaymentDetails(
+                "TXN-" + System.currentTimeMillis(),
+                "Lapangan Badminton A",
+                "1 November 2026",
+                "10:00 - 12:00",
+                reservationFormPanel.getSelectedPaymentMethod(),
+                150000,
+                java.time.LocalDateTime.now().toString().replace("T", " ").substring(0, 19)
+            );
+            contentCardLayout.show(contentPanel, "C_PAYMENT");
+        });
+>>>>>>> f39724c (Rapikan tampilan lapangan dan detail)
 
         paymentPanel.setOnViewHistory(() -> {
             refreshCustomerHistory();
@@ -345,10 +416,10 @@ public class MainFrame extends JFrame {
 
         // Field list
         fieldListPanel.setFields(new String[][]{
-            {"f-001", "Lapangan Badminton A", "BADMINTON", "75000", "08:00", "22:00", "Indoor, lantai vinyl", "true"},
-            {"f-002", "Lapangan Futsal B", "FUTSAL", "120000", "08:00", "22:00", "Ukuran 25x15m", "25x15m"},
-            {"f-003", "Lapangan Basketball C", "BASKETBALL", "100000", "08:00", "22:00", "Full court", "true"},
-            {"f-004", "Lapangan Tennis D", "TENNIS", "90000", "08:00", "22:00", "Hard court", "Hard court"},
+            {"f-001", "Lapangan Badminton A", "BADMINTON", "75000", "08:00", "22:00", "Indoor, lantai vinyl", "true", "Tersedia"},
+            {"f-002", "Lapangan Futsal B", "FUTSAL", "120000", "08:00", "22:00", "Ukuran 25x15m", "25x15m", "Tersedia"},
+            {"f-003", "Lapangan Basketball C", "BASKETBALL", "100000", "08:00", "22:00", "Full court", "true", "Penuh"},
+            {"f-004", "Lapangan Tennis D", "TENNIS", "90000", "08:00", "22:00", "Hard court", "Hard court", "Tersedia"},
         });
 
         // Slot selection field options
@@ -362,6 +433,7 @@ public class MainFrame extends JFrame {
                 new String[]{"f-001", "f-002", "f-003", "f-004"}
         );
 
+<<<<<<< HEAD
         slotSelectionPanel.setOnSearch(() ->
                 searchAvailableSlots()
         );
@@ -375,6 +447,33 @@ public class MainFrame extends JFrame {
             sidebar.setSelected(2);
             contentCardLayout.show(contentPanel, "C_SLOTS");
             searchAvailableSlots();
+=======
+        slotSelectionPanel.setOnBook(() -> {
+            String[] selectedField = fieldListPanel.getFieldById(slotSelectionPanel.getSelectedFieldId());
+            int duration = slotSelectionPanel.getSelectedDuration();
+            if (selectedField == null || duration == 0) return;
+            String priceDigits = selectedField[3].replaceAll("[^0-9]", "");
+            if (priceDigits.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Harga lapangan tidak valid.",
+                        "Tidak dapat membuat reservasi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            double hourlyPrice;
+            try {
+                hourlyPrice = Double.parseDouble(priceDigits);
+            } catch (NumberFormatException exception) {
+                JOptionPane.showMessageDialog(this, "Harga lapangan tidak valid.",
+                        "Tidak dapat membuat reservasi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            double total = duration * hourlyPrice;
+            reservationFormPanel.setReservationDetails(
+                selectedField[1], selectedField[2],
+                slotSelectionPanel.getSelectedDate(), slotSelectionPanel.getSelectedTimeRange(),
+                duration, hourlyPrice, 0, total
+            );
+            contentCardLayout.show(contentPanel, "C_RESERVATION");
+>>>>>>> f39724c (Rapikan tampilan lapangan dan detail)
         });
 
         // Riwayat dimulai kosong

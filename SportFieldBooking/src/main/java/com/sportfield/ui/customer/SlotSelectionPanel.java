@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,8 @@ public class SlotSelectionPanel extends JPanel {
     private boolean[] slotAvailability;
     private final List<Integer> selectedSlots = new ArrayList<>();
     private double pricePerHour = 0;
+    private LocalDate selectedDate = LocalDate.now();
+    private YearMonth shownMonth = YearMonth.now();
 
     // ── Callbacks ──
     private Runnable onSearch;
@@ -34,11 +37,12 @@ public class SlotSelectionPanel extends JPanel {
 
     // ── UI Components ──
     private final JComboBox<String> fieldCombo;
-    private final JComboBox<String> dateCombo;
     private final RoundedButton searchButton;
 
     private final CardPanel slotCard;
     private final JLabel slotTitleLabel;
+    private final JLabel monthLabel;
+    private final JPanel dayGrid;
     private final JPanel slotGridPanel;
     private final JLabel summaryLabel;
     private final RoundedButton bookButton;
@@ -96,7 +100,11 @@ public class SlotSelectionPanel extends JPanel {
         filterCard.setLayout(new BorderLayout());
         filterCard.setBorder(new EmptyBorder(Theme.PADDING, Theme.PADDING, Theme.PADDING, Theme.PADDING));
         filterCard.setAlignmentX(LEFT_ALIGNMENT);
+<<<<<<< HEAD
         filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+=======
+        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+>>>>>>> f39724c (Rapikan tampilan lapangan dan detail)
 
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, Theme.PADDING_SM, 0));
         filterRow.setOpaque(false);
@@ -108,16 +116,8 @@ public class SlotSelectionPanel extends JPanel {
         fieldGroup.add(fieldCombo);
         filterRow.add(fieldGroup);
 
-        // Tanggal combo
-        JPanel dateGroup = createFormGroup("Tanggal");
-        dateCombo = createStyledCombo();
-        dateCombo.setPreferredSize(new Dimension(260, 38));
-        populateDates();
-        dateGroup.add(dateCombo);
-        filterRow.add(dateGroup);
-
         // Search button
-        searchButton = new RoundedButton("Cari", RoundedButton.Style.PRIMARY);
+        searchButton = new RoundedButton("Lihat Jadwal", RoundedButton.Style.SUCCESS);
         searchButton.setPreferredSize(new Dimension(120, 38));
         searchButton.addActionListener(e -> {
             if (onSearch != null) onSearch.run();
@@ -131,6 +131,55 @@ public class SlotSelectionPanel extends JPanel {
 
         filterCard.add(filterRow, BorderLayout.CENTER);
         content.add(filterCard);
+        content.add(Box.createVerticalStrut(Theme.PADDING));
+
+        CardPanel calendarCard = new CardPanel();
+        calendarCard.setLayout(new BorderLayout());
+        calendarCard.setBorder(new EmptyBorder(Theme.PADDING, Theme.PADDING, Theme.PADDING, Theme.PADDING));
+        calendarCard.setAlignmentX(LEFT_ALIGNMENT);
+        calendarCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 330));
+
+        JPanel calendarHeader = new JPanel(new BorderLayout(8, 0));
+        calendarHeader.setOpaque(false);
+        JLabel calendarTitle = new JLabel("Pilih Tanggal");
+        calendarTitle.setFont(Theme.FONT_HEADING);
+        calendarTitle.setForeground(Theme.TEXT_PRIMARY);
+        monthLabel = new JLabel("", SwingConstants.CENTER);
+        monthLabel.setFont(Theme.FONT_BODY.deriveFont(Font.BOLD));
+        monthLabel.setForeground(Theme.TEXT_PRIMARY);
+
+        RoundedButton previousMonth = new RoundedButton("<", RoundedButton.Style.OUTLINE);
+        RoundedButton nextMonth = new RoundedButton(">", RoundedButton.Style.OUTLINE);
+        previousMonth.setPreferredSize(new Dimension(38, 34));
+        nextMonth.setPreferredSize(new Dimension(38, 34));
+        previousMonth.addActionListener(e -> {
+            if (shownMonth.isAfter(YearMonth.now())) {
+                shownMonth = shownMonth.minusMonths(1);
+                rebuildCalendar();
+            }
+        });
+        nextMonth.addActionListener(e -> {
+            shownMonth = shownMonth.plusMonths(1);
+            rebuildCalendar();
+        });
+
+        JPanel monthNavigation = new JPanel(new BorderLayout(6, 0));
+        monthNavigation.setOpaque(false);
+        monthNavigation.add(previousMonth, BorderLayout.WEST);
+        monthNavigation.add(monthLabel, BorderLayout.CENTER);
+        monthNavigation.add(nextMonth, BorderLayout.EAST);
+        calendarHeader.add(calendarTitle, BorderLayout.WEST);
+        calendarHeader.add(monthNavigation, BorderLayout.EAST);
+
+        dayGrid = new JPanel(new GridLayout(7, 7, 4, 4));
+        dayGrid.setOpaque(false);
+        JPanel calendarContent = new JPanel(new BorderLayout(0, 10));
+        calendarContent.setOpaque(false);
+        calendarContent.add(calendarHeader, BorderLayout.NORTH);
+        calendarContent.add(dayGrid, BorderLayout.CENTER);
+        calendarCard.add(calendarContent, BorderLayout.CENTER);
+        rebuildCalendar();
+        content.add(calendarCard);
         content.add(Box.createVerticalStrut(Theme.PADDING));
 
         // ── Empty State ──
@@ -225,6 +274,16 @@ public class SlotSelectionPanel extends JPanel {
         }
     }
 
+    public void selectField(String fieldId) {
+        for (int i = 0; i < fieldIds.length; i++) {
+            if (fieldIds[i].equals(fieldId)) {
+                fieldCombo.setSelectedIndex(i);
+                if (onSearch != null) onSearch.run();
+                return;
+            }
+        }
+    }
+
     /**
      * Menampilkan slot yang tersedia untuk lapangan dan tanggal tertentu.
      * @param fieldName  nama lapangan
@@ -285,7 +344,25 @@ public class SlotSelectionPanel extends JPanel {
      * Mendapatkan tanggal yang dipilih dari dropdown.
      */
     public String getSelectedDate() {
-        return (String) dateCombo.getSelectedItem();
+        Locale locale = new Locale("id", "ID");
+        String month = selectedDate.getMonth().getDisplayName(TextStyle.SHORT, locale);
+        return selectedDate.getDayOfMonth() + " " + month + " " + selectedDate.getYear();
+    }
+
+    public String getSelectedFieldName() {
+        Object selected = fieldCombo.getSelectedItem();
+        return selected == null ? "" : selected.toString();
+    }
+
+    public String getSelectedTimeRange() {
+        if (selectedSlots.isEmpty()) return "";
+        int first = selectedSlots.get(0);
+        int last = selectedSlots.get(selectedSlots.size() - 1) + 1;
+        return SLOT_LABELS[first].substring(0, 5) + " - " + SLOT_LABELS[last - 1].substring(8, 13);
+    }
+
+    public int getSelectedDuration() {
+        return selectedSlots.size();
     }
 
     /**
@@ -393,6 +470,72 @@ public class SlotSelectionPanel extends JPanel {
         }
     }
 
+    private void rebuildCalendar() {
+        Locale locale = new Locale("id", "ID");
+        String month = shownMonth.getMonth().getDisplayName(TextStyle.FULL, locale);
+        monthLabel.setText(month.substring(0, 1).toUpperCase(locale) + month.substring(1)
+                + " " + shownMonth.getYear());
+        dayGrid.removeAll();
+
+        for (String day : new String[]{"Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"}) {
+            JLabel label = new JLabel(day, SwingConstants.CENTER);
+            label.setFont(Theme.FONT_SMALL.deriveFont(Font.BOLD));
+            label.setForeground(Theme.TEXT_SECONDARY);
+            dayGrid.add(label);
+        }
+
+        LocalDate firstDay = shownMonth.atDay(1);
+        int startOffset = firstDay.getDayOfWeek().getValue() - 1;
+        int daysInMonth = shownMonth.lengthOfMonth();
+        LocalDate today = LocalDate.now();
+
+        for (int index = 0; index < 42; index++) {
+            int dayNumber = index - startOffset + 1;
+            boolean inMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
+            LocalDate day = inMonth ? shownMonth.atDay(dayNumber) : null;
+            boolean enabled = inMonth && !day.isBefore(today);
+            boolean selected = day != null && day.equals(selectedDate);
+
+            JButton dayButton = new JButton(inMonth ? String.valueOf(dayNumber) : "") {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    if (selected) {
+                        g2.setColor(new Color(105, 190, 75));
+                        g2.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 12, 12);
+                    } else if (getModel().isRollover() && isEnabled()) {
+                        g2.setColor(new Color(239, 248, 235));
+                        g2.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 12, 12);
+                    }
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            dayButton.setFont(Theme.FONT_BODY.deriveFont(selected ? Font.BOLD : Font.PLAIN));
+            dayButton.setForeground(selected ? Color.WHITE
+                    : enabled ? Theme.TEXT_PRIMARY : new Color(190, 194, 200));
+            dayButton.setEnabled(enabled);
+            dayButton.setOpaque(false);
+            dayButton.setContentAreaFilled(false);
+            dayButton.setBorderPainted(false);
+            dayButton.setFocusPainted(false);
+            dayButton.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                    : Cursor.getDefaultCursor());
+            if (enabled) {
+                dayButton.addActionListener(e -> {
+                    selectedDate = day;
+                    selectedSlots.clear();
+                    rebuildCalendar();
+                    if (onSearch != null) onSearch.run();
+                });
+            }
+            dayGrid.add(dayButton);
+        }
+        dayGrid.revalidate();
+        dayGrid.repaint();
+    }
+
     private JButton createSlotButton(String text, boolean available) {
         JButton btn = new JButton(text) {
             @Override
@@ -468,19 +611,4 @@ public class SlotSelectionPanel extends JPanel {
         return combo;
     }
 
-    private void populateDates() {
-        Locale locale = new Locale("id", "ID");
-        LocalDate today = LocalDate.now();
-        for (int i = 0; i < 14; i++) {
-            LocalDate date = today.plusDays(i);
-            String dayName = date.getDayOfWeek().getDisplayName(TextStyle.FULL, locale);
-            // Capitalize first letter
-            dayName = dayName.substring(0, 1).toUpperCase() + dayName.substring(1);
-            String monthName = date.getMonth().getDisplayName(TextStyle.SHORT, locale);
-            // Capitalize first letter
-            monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
-            String display = dayName + ", " + date.getDayOfMonth() + " " + monthName + " " + date.getYear();
-            dateCombo.addItem(display);
-        }
-    }
 }

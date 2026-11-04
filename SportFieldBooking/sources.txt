@@ -15,6 +15,7 @@
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/components/Sidebar.java"
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/components/WebBrowserPanel.java"
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/customer/CustomerDashboard.java"
+"D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/customer/FieldDetailPanel.java"
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/customer/FieldListPanel.java"
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/customer/HistoryPanel.java"
 "D:/Tubes PBOL/SportFieldBooking/src/main/java/com/sportfield/ui/customer/PaymentPanel.java"
