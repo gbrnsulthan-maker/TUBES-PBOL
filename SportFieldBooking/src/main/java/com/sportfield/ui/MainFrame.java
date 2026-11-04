@@ -4,6 +4,7 @@ import com.sportfield.ui.admin.AdminDashboard;
 import com.sportfield.ui.admin.ManageFieldPanel;
 import com.sportfield.ui.admin.ManageSchedulePanel;
 import com.sportfield.ui.admin.ReportPanel;
+import com.sportfield.ui.admin.ReservationPanel;
 import com.sportfield.ui.auth.LoginPanel;
 import com.sportfield.ui.auth.RegisterPanel;
 import com.sportfield.ui.components.Sidebar;
@@ -183,14 +184,9 @@ public class MainFrame extends JFrame {
         contentPanel.add(manageSchedulePanel, "A_SCHEDULE");
         contentPanel.add(reportPanel, "A_REPORT");
 
-        // Create a placeholder for admin reservations
-        JPanel adminReservationPlaceholder = new JPanel(new GridBagLayout());
-        adminReservationPlaceholder.setBackground(Theme.BG_MAIN);
-        JLabel placeholderLabel = new JLabel("📋 Daftar Reservasi (segera hadir)");
-        placeholderLabel.setFont(Theme.FONT_SUBTITLE);
-        placeholderLabel.setForeground(Theme.TEXT_SECONDARY);
-        adminReservationPlaceholder.add(placeholderLabel);
-        contentPanel.add(adminReservationPlaceholder, "A_RESERVATIONS");
+        //Placeholder reservasi
+        ReservationPanel adminReservationPanel = new ReservationPanel();
+        contentPanel.add(adminReservationPanel, "A_RESERVATIONS");
 
         mainContainer.add(sidebar, BorderLayout.WEST);
         mainContainer.add(contentPanel, BorderLayout.CENTER);
